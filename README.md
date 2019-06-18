@@ -51,4 +51,4 @@ Fricker et al. (2009), Bindschadler et al. (2011)
 
 ## Data files
 
-aws s3 aws  s3 cp s3://pangeo-data-upload-oregon/icesat2/ground2float/ .
+aws  s3 cp s3://pangeo-data-upload-oregon/icesat2/ground2float/ .
