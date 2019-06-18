@@ -19,6 +19,7 @@ Identifying grounding zones from ICESat-2
 
 Grounding zones are very important but hard to identify in space. One tool with which to do this is altimetry, which can be used to locate slope breaks or detect tidal signals. We will develop tools to identify grounding zones from ICESat-2.
 
+
 ### Application Example
 
 One location where these tools could be applied is Rutford Ice Stream. In this location, ICESat-2 tracks are roughly along flow. There are also two tracks over Thwaites that might contain valuable data--tracks 1079 (December 8, 2018) and 576 (November 11, 2018).
@@ -47,3 +48,7 @@ Our plan is to test out the tool on a single track in the Thwaites region and th
 ### Background reading
 
 Fricker et al. (2009), Bindschadler et al. (2011)
+
+## Data files
+
+aws s3 aws  s3 cp s3://pangeo-data-upload-oregon/icesat2/ground2float/ .
