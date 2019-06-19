@@ -6,6 +6,7 @@ from glob import glob
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.signal
+from datetime import datetime
 data_dir='ATL06/Byrd_glacier_rel001/'
 
 module_path = os.path.abspath(os.path.join('..'))
@@ -37,9 +38,12 @@ def ATL06_to_dict(filename, dataset_dict):
     D6=[]
     pairs=[1, 2, 3]
     beams=['l','r']
+    gps_epoch = datetime(1980, 1, 6, 0, 0, 0)
+    gps_epoch_ts = gps_epoch.timestamp()
     # open the HDF5 file
     with h5py.File(filename) as h5f:
         # loop over beam pairs
+        file_epoch_time = np.array(h5f['ancillary_data']['atlas_sdp_gps_epoch']) + gps_epoch_ts
         for pair in pairs:
             # loop over beams
             for beam_ind, beam in enumerate(beams):
@@ -54,6 +58,8 @@ def ATL06_to_dict(filename, dataset_dict):
                         # since a dataset may not exist in a file, we're going to try to read it, and if it doesn't work, we'll move on to the next:
                         try:
                             temp[dataset]=np.array(h5f[DS])
+                            if dataset == "delta_time":
+                                temp[dataset] = temp[dataset] + file_epoch_time
                             # some parameters have a _FillValue attribute.  If it exists, use it to identify bad values, and set them to np.NaN
                             if '_FillValue' in h5f[DS].attrs:
                                 fill_value=h5f[DS].attrs['_FillValue']
@@ -70,6 +76,12 @@ def ATL06_to_dict(filename, dataset_dict):
                     D6.append(temp)
     return D6
 
+def get_velocity(d6):
+    pass
+
+def get_rema_elev(d6):
+    pass
+    
 if __name__ == "__main__":
     lineno=898
     fn = "ben-data.h5" # file name for the line
@@ -80,6 +92,7 @@ if __name__ == "__main__":
 
     # pick out gt1r:
     D6 = D6_list[1]
+    print(datetime.utcfromtimestamp(D6['delta_time'][0]))
 
     f1,ax = plt.subplots(num=1,figsize=(10,6))
     ax.plot(D6['x_atc'], D6['h_li'],'r.', markersize=2, label='ATL06')
