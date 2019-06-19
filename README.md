@@ -52,3 +52,10 @@ Fricker et al. (2009), Bindschadler et al. (2011)
 ## Data files
 
 aws s3 cp s3://pangeo-data-upload-oregon/icesat2/ground2float/ .
+
+To get IS2 data:
+
+% Get token from NSIDC: first need IP address
+curl ifconfig.me 
+./getATL/setup_token earthdataUserName earthdataPassword yourIPaddress
+

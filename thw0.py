@@ -6,8 +6,14 @@ from glob import glob
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.signal
+import pyproj
 from datetime import datetime
+from osgeo import gdal, gdalconst, osr
+
 data_dir='ATL06/Byrd_glacier_rel001/'
+
+lon_lat=pyproj.Proj(init='epsg:4326')
+polar_stereo=pyproj.Proj(init='epsg:3031')
 
 module_path = os.path.abspath(os.path.join('..'))
 if module_path not in sys.path:
@@ -77,12 +83,35 @@ def ATL06_to_dict(filename, dataset_dict):
     return D6
 
 def get_velocity(d6):
+    psx,psy = pyproj.transform(lon_lat,polar_stereo,D6['longitude'],D6['latitude'])
     pass
 
 def get_rema_elev(d6):
+    psx,psy = pyproj.transform(lon_lat,polar_stereo,D6['longitude'],D6['latitude'])
     pass
     
+def load_tif(tif):
+    dataset = gdal.Open(tif, gdal.GA_ReadOnly)
+    band = dataset.GetRasterBand(1)
+    array = band.ReadAsArray()
+    proj=dataset.GetProjection()
+    GT=dataset.GetGeoTransform()
+    ii=np.array([0, band.XSize-1])+0.5
+    jj=np.array([0,band.YSize])+0.5
+    x=GT[0]+GT[1]*ii
+    y=GT[0]+GT[1]*jj
+    dx=GT[1]
+    dy=(GT[5]*-1)
+    xi=np.arange(x.min(),x.max()+dx,dx)
+    yi=np.arange(y.min(),y.max()+dy,dy)
+    xI, yI = np.meshgrid(xi, yi)
+    return xi,yi,array 
+
+    
 if __name__ == "__main__":
+    
+    aws --no-sign-request s3 sync s3://pangeo-data-upload-oregon/icesat2/ground2float/ ./data
+        
     lineno=898
     fn = "ben-data.h5" # file name for the line
     dataset_dict={'land_ice_segments':['h_li', 'delta_time','longitude','latitude'], 'land_ice_segments/ground_track':['x_atc']}
@@ -102,7 +131,13 @@ if __name__ == "__main__":
     ax.set_ylabel('h, m')
     plt.savefig('thw0.png')
     
+    # load in velocity and subsample
+    #vels_array=load_tif('')
+    
     vels = get_velocity(D6)
+    
+    # load in rema and subsample
+    rema_array=load_tif('../data/REMA_1km_dem_filled.tif')
     rema_elev = get_rema_elev(D6)
     
     
