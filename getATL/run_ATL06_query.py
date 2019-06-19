@@ -70,7 +70,7 @@ if token is None:
 
 token_str='&token=%s' % token
  
-if 'out_dir' in args:
+if 'output_directoryx' in args:
     os.chdir(args.output_directory)
 
 if args.tifFile is not None:
