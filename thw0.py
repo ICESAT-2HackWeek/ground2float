@@ -110,10 +110,11 @@ def load_tif(tif):
     
 if __name__ == "__main__":
     
-    aws --no-sign-request s3 sync s3://pangeo-data-upload-oregon/icesat2/ground2float/ ./data
+    #aws --no-sign-request s3 sync s3://pangeo-data-upload-oregon/icesat2/ground2float/ ./data
         
-    lineno=898
-    fn = "ben-data.h5" # file name for the line
+    data_dir = "/home/jovyan/ground2float/ATL06/"
+    ATLfiles = glob(data_dir)
+    print(ATLfiles)
     dataset_dict={'land_ice_segments':['h_li', 'delta_time','longitude','latitude'], 'land_ice_segments/ground_track':['x_atc']}
     # read ATL06 into a dictionary (the ATL06 file has the same name as the ATL03 file, except for the product name)
     
