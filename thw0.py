@@ -109,8 +109,9 @@ def load_tif(tif):
 
     
 if __name__ == "__main__":
-    
-    #aws --no-sign-request s3 sync s3://pangeo-data-upload-oregon/icesat2/ground2float/ ./data
+
+    os.system('aws --no-sign-request s3 sync s3://pangeo-data-upload-oregon/icesat2/ground2float/ ./data')
+    os.system('echo $PATH')
         
     data_dir = "/home/jovyan/ground2float/ATL06/"
     ATLfiles = glob(data_dir)
@@ -138,7 +139,7 @@ if __name__ == "__main__":
     vels = get_velocity(D6)
     
     # load in rema and subsample
-    rema_array=load_tif('../data/REMA_1km_dem_filled.tif')
+    rema_array=load_tif('./data/REMA_1km_dem_filled.tif')
     rema_elev = get_rema_elev(D6)
     
     
