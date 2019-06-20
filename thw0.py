@@ -153,11 +153,12 @@ def tifread(ifile):
     
 if __name__ == "__main__":
 
-    os.system('aws --no-sign-request s3 sync s3://pangeo-data-upload-oregon/icesat2/ground2float/ ./data')
+    # get h5 files, velocity files, and rema
+    #os.system('aws --no-sign-request s3 sync s3://pangeo-data-upload-oregon/icesat2/ground2float/ ./data')
     #os.system('echo $PATH')
         
-    lineno=898
-    fn = "/home/jovyan/ground2float/data/ATL06/ATL06_20181208072425_10790110_001_01.h5" # file name for the line
+    #lineno=898
+    #fn = "/home/jovyan/ground2float/data/ATL06/ATL06_20181208072425_10790110_001_01.h5" # file name for the line
     data_dir = "/home/jovyan/ground2float/data/ATL06/*01.h5"
     ATLfiles = glob(data_dir)
     #print(ATLfiles)
@@ -194,14 +195,14 @@ if __name__ == "__main__":
     print(D6['x_atc'].shape)
     print(T6['tide'].shape)
     
-    f1,ax = plt.subplots(num=1,figsize=(10,6))
+    f1,ax = plt.subplots()
     ax.plot(D6['x_atc'], D6['h_li'],'r.', markersize=2, label='ATL06')
     ax.plot(D6['x_atc'], T6['tide'])
     lgd = ax.legend(loc=3,frameon=False)
-
+    ax.set_ylim([-100,100])
     ax.set_xlabel('x_atc, m')
     ax.set_ylabel('h, m')
-    plt.savefig('thw0.png')
+    #plt.savefig('thwt.png')
     
     # load in velocity and subsample
     vels_xI,vels_yI,vels_array=tifread('./data/vx.tif')
@@ -212,20 +213,20 @@ if __name__ == "__main__":
     rema_elev = get_rema_elev(D6)
     
     # plot results
-    f1,ax = plt.subplots(num=1,figsize=(6,4))
-    ax.plot(D6['x_atc'], D6['h_li'],'r.', markersize=2, label='ATL06')
-    ax.plot(D6['x_atc'], rema_elev ,'b.', markersize=2, label='REMA')
+    f2,ax2 = plt.subplots()
+    ax2.plot(D6['x_atc'], D6['h_li'],'r.', markersize=2, label='ATL06')
+    ax2.plot(D6['x_atc'], rema_elev ,'b.', markersize=2, label='REMA')
     #ax.plot(D6['x_atc'], vels ,'g.', markersize=2, label='Velocity')
-    lgd = ax.legend(loc=3,frameon=False)
-    ax.set_ylim([-100,2000])
-    ax.set_xlabel('x_atc, m')
-    ax.set_ylabel('h, m')
-    plt.savefig('thw0.png')
+    lgd = ax2.legend(loc=3,frameon=False)
+    ax2.set_ylim([-100,2000])
+    ax2.set_xlabel('x_atc, m')
+    ax2.set_ylabel('h, m')
+    #plt.savefig('thw0.png')
     
-    f2,ax = plt.subplots(num=1,figsize=(6,4))
-    ax.plot(D6['x_atc'], D6['h_li']-rema_elev,'r.', markersize=2, label='Difference IS2-REMA')
-    lgd = ax.legend(loc=3,frameon=False)
-    ax.set_ylim([-100,2000])
-    ax.set_xlabel('x_atc, m')
-    ax.set_ylabel('h, m')
-    plt.savefig('thw1.png')
+    f3,ax3 = plt.subplots()
+    ax3.plot(D6['x_atc'], D6['h_li']-rema_elev,'r.', markersize=2, label='Difference IS2-REMA')
+    lgd = ax3.legend(loc=3,frameon=False)
+    ax3.set_ylim([-100,100])
+    ax3.set_xlabel('x_atc, m')
+    ax3.set_ylabel('h, m')
+    #plt.savefig('thw1.png')
