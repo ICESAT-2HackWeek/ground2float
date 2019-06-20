@@ -31,7 +31,7 @@ if module_path not in sys.path:
 #%autoreload 2
 
 
-def ATL06_to_dict(filename, dataset_dict):
+def ATL06_to_dict(filename, dataset_dict, gpstime=True):
     """
         Read selected datasets from an ATL06 file
 
@@ -40,6 +40,7 @@ def ATL06_to_dict(filename, dataset_dict):
             dataset_dict: A dictinary describing the fields to be read
                     keys give the group names to be read, 
                     entries are lists of datasets within the groups
+            gpstime: boolean; correct times for GPS epoch (default true)
         Output argument:
             D6: dictionary containing ATL06 data.  Each dataset in 
                 dataset_dict has its own entry in D6.  Each dataset 
@@ -54,8 +55,12 @@ def ATL06_to_dict(filename, dataset_dict):
     gps_epoch_ts = gps_epoch.timestamp()
     # open the HDF5 file
     with h5py.File(filename) as h5f:
+        if gpstime: #calc the time offset to unix time
+            file_epoch_time = np.array(h5f['ancillary_data']['atlas_sdp_gps_epoch']) + gps_epoch_ts
+        else:
+            file_epoch_time = 0
+        
         # loop over beam pairs
-        file_epoch_time = np.array(h5f['ancillary_data']['atlas_sdp_gps_epoch']) + gps_epoch_ts
         for pair in pairs:
             # loop over beams
             for beam_ind, beam in enumerate(beams):
@@ -127,6 +132,7 @@ def tifread(ifile):
     Nx = file.RasterXSize
     Ny = file.RasterYSize
 
+<<<<<<< HEAD
     trans = file.GetGeoTransform()
 
     dx = trans[1]
@@ -145,22 +151,71 @@ def tifread(ifile):
     dx = np.abs(dx)
     dy = np.abs(dy)
     return X, Y, Z
+=======
+#$ h5ls ATL06_20181105085653_05760110_001_01_tides_cats.h5/gt1l {gt1r, gt2l, gt2r, gt3l, gt3r}
+#lat                      Dataset {1, 40465}
+#lon                      Dataset {1, 40465}
+#tides_cats               Dataset {1, 40465}
+#time                     Dataset {1, 40465}
+>>>>>>> 746bcd7196e5c3c3be660bbeaf21f05ed1419fdf
     
 if __name__ == "__main__":
-    
-    os.system('aws --no-sign-request s3 sync s3://pangeo-data-upload-oregon/icesat2/ground2float/ ./data')
-    os.system('echo $PATH')
+
+    #os.system('aws --no-sign-request s3 sync s3://pangeo-data-upload-oregon/icesat2/ground2float/ ./data')
+    #os.system('echo $PATH')
         
+<<<<<<< HEAD
     lineno=898
     fn = "/home/jovyan/ground2float/data/ATL06/ATL06_20181208072425_10790110_001_01.h5" # file name for the line
+=======
+    data_dir = "/home/jovyan/ground2float/ATL06/*01.h5"
+    ATLfiles = glob(data_dir)
+    #print(ATLfiles)
+    
+    fn = ATLfiles[0]
+    
+    fbase, ext = os.path.splitext(fn)
+    ftide = fbase+"_tides_cats" + ext
+    
+    T6_list=[]
+    with h5py.File(ftide) as tidef:
+        trks = tidef.keys()
+        for i, trk in enumerate(trks):
+            tmp={}
+            tmp["latitude"] = np.array(tidef[f"/{trk}/lat"]).T
+            tmp["longitude"] = np.array(tidef[f"/{trk}/lon"]).T
+            tmp["tide"] = np.array(tidef[f"/{trk}/tides_cats"]).T
+            tmp["time"] = np.array(tidef[f"/{trk}/time"]).T
+
+            T6_list.append(tmp)
+            #print(trk, lat)
+    #print(T6_list[0])          
+>>>>>>> 746bcd7196e5c3c3be660bbeaf21f05ed1419fdf
     dataset_dict={'land_ice_segments':['h_li', 'delta_time','longitude','latitude'], 'land_ice_segments/ground_track':['x_atc']}
     # read ATL06 into a dictionary (the ATL06 file has the same name as the ATL03 file, except for the product name)
     
+    fn = ATLfiles[0]
     D6_list=ATL06_to_dict(fn, dataset_dict)
 
     # pick out gt1r:
     D6 = D6_list[1]
+<<<<<<< HEAD
     print(datetime.utcfromtimestamp(D6['delta_time'][0]))
+=======
+    T6 = T6_list[1]
+
+    print(D6['x_atc'].shape)
+    print(T6['tide'].shape)
+    
+    f1,ax = plt.subplots(num=1,figsize=(10,6))
+    ax.plot(D6['x_atc'], D6['h_li'],'r.', markersize=2, label='ATL06')
+    ax.plot(D6['x_atc'], T6['tide'])
+    lgd = ax.legend(loc=3,frameon=False)
+
+    ax.set_xlabel('x_atc, m')
+    ax.set_ylabel('h, m')
+    plt.savefig('thw0.png')
+>>>>>>> 746bcd7196e5c3c3be660bbeaf21f05ed1419fdf
     
     # load in velocity and subsample
     vels_xI,vels_yI,vels_array=tifread('./data/vx.tif')
