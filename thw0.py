@@ -133,7 +133,7 @@ if __name__ == "__main__":
     plt.savefig('thw0.png')
     
     # load in velocity and subsample
-    #vels_array=load_tif('')
+    vels_array=load_tif('./data/vx.tif')
     
     vels = get_velocity(D6)
     
