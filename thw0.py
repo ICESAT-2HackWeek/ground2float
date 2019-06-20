@@ -131,8 +131,7 @@ def tifread(ifile):
 
     Nx = file.RasterXSize
     Ny = file.RasterYSize
-
-<<<<<<< HEAD
+    
     trans = file.GetGeoTransform()
 
     dx = trans[1]
@@ -151,24 +150,15 @@ def tifread(ifile):
     dx = np.abs(dx)
     dy = np.abs(dy)
     return X, Y, Z
-=======
-#$ h5ls ATL06_20181105085653_05760110_001_01_tides_cats.h5/gt1l {gt1r, gt2l, gt2r, gt3l, gt3r}
-#lat                      Dataset {1, 40465}
-#lon                      Dataset {1, 40465}
-#tides_cats               Dataset {1, 40465}
-#time                     Dataset {1, 40465}
->>>>>>> 746bcd7196e5c3c3be660bbeaf21f05ed1419fdf
     
 if __name__ == "__main__":
 
-    #os.system('aws --no-sign-request s3 sync s3://pangeo-data-upload-oregon/icesat2/ground2float/ ./data')
+    os.system('aws --no-sign-request s3 sync s3://pangeo-data-upload-oregon/icesat2/ground2float/ ./data')
     #os.system('echo $PATH')
         
-<<<<<<< HEAD
     lineno=898
     fn = "/home/jovyan/ground2float/data/ATL06/ATL06_20181208072425_10790110_001_01.h5" # file name for the line
-=======
-    data_dir = "/home/jovyan/ground2float/ATL06/*01.h5"
+    data_dir = "/home/jovyan/ground2float/data/ATL06/*01.h5"
     ATLfiles = glob(data_dir)
     #print(ATLfiles)
     
@@ -190,7 +180,6 @@ if __name__ == "__main__":
             T6_list.append(tmp)
             #print(trk, lat)
     #print(T6_list[0])          
->>>>>>> 746bcd7196e5c3c3be660bbeaf21f05ed1419fdf
     dataset_dict={'land_ice_segments':['h_li', 'delta_time','longitude','latitude'], 'land_ice_segments/ground_track':['x_atc']}
     # read ATL06 into a dictionary (the ATL06 file has the same name as the ATL03 file, except for the product name)
     
@@ -199,9 +188,7 @@ if __name__ == "__main__":
 
     # pick out gt1r:
     D6 = D6_list[1]
-<<<<<<< HEAD
     print(datetime.utcfromtimestamp(D6['delta_time'][0]))
-=======
     T6 = T6_list[1]
 
     print(D6['x_atc'].shape)
@@ -215,7 +202,6 @@ if __name__ == "__main__":
     ax.set_xlabel('x_atc, m')
     ax.set_ylabel('h, m')
     plt.savefig('thw0.png')
->>>>>>> 746bcd7196e5c3c3be660bbeaf21f05ed1419fdf
     
     # load in velocity and subsample
     vels_xI,vels_yI,vels_array=tifread('./data/vx.tif')
