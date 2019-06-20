@@ -9,8 +9,14 @@ import scipy.signal
 import pyproj
 from datetime import datetime
 from osgeo import gdal, gdalconst, osr
+from utils import interp2d
 
-data_dir='ATL06/Byrd_glacier_rel001/'
+from osgeo import gdal, gdalconst, osr
+import matplotlib.pyplot as plt
+import numpy as np
+
+
+#data_dir='ATL06/Byrd_glacier_rel001/'
 
 lon_lat=pyproj.Proj(init='epsg:4326')
 polar_stereo=pyproj.Proj(init='epsg:3031')
@@ -82,14 +88,17 @@ def ATL06_to_dict(filename, dataset_dict):
                     D6.append(temp)
     return D6
 
-def get_velocity(d6):
+def get_velocity(D6):
     psx,psy = pyproj.transform(lon_lat,polar_stereo,D6['longitude'],D6['latitude'])
-    pass
+    vel_is2 = interp2d(vels_xI, vels_yI, vels_array, psx, psy, order=1)
+    return vel_is2
 
-def get_rema_elev(d6):
+def get_rema_elev(D6):
     psx,psy = pyproj.transform(lon_lat,polar_stereo,D6['longitude'],D6['latitude'])
-    pass
-    
+    rema_is2 = interp2d(rema_xI, rema_yI, rema_array, psx, psy, order=1)
+    return rema_is2
+  
+# this thang don't work, don't use it    
 def load_tif(tif):
     dataset = gdal.Open(tif, gdal.GA_ReadOnly)
     band = dataset.GetRasterBand(1)
@@ -105,8 +114,37 @@ def load_tif(tif):
     xi=np.arange(x.min(),x.max()+dx,dx)
     yi=np.arange(y.min(),y.max()+dy,dy)
     xI, yI = np.meshgrid(xi, yi)
-    return xi,yi,array 
+    return xI,yI,np.flipud(array) 
 
+def tifread(ifile):
+    file = gdal.Open(ifile, gdal.GA_ReadOnly)
+    metaData = file.GetMetadata()
+    projection = file.GetProjection()
+    src = osr.SpatialReference()
+    src.ImportFromWkt(projection)
+    proj = src.ExportToWkt()
+
+    Nx = file.RasterXSize
+    Ny = file.RasterYSize
+
+    trans = file.GetGeoTransform()
+
+    dx = trans[1]
+    dy = trans[5]
+
+    Xp = np.arange(Nx)
+    Yp = np.arange(Ny)
+
+    (Xp, Yp) = np.meshgrid(Xp, Yp)
+
+    X = trans[0] + (Xp + 0.5) * trans[1] + (Yp + 0.5) * trans[2]
+    Y = trans[3] + (Xp + 0.5) * trans[4] + (Yp + 0.5) * trans[5]
+
+    band = file.GetRasterBand(1)
+    Z = band.ReadAsArray()
+    dx = np.abs(dx)
+    dy = np.abs(dy)
+    return X, Y, Z
     
 if __name__ == "__main__":
     
@@ -114,7 +152,7 @@ if __name__ == "__main__":
     os.system('echo $PATH')
         
     lineno=898
-    fn = "ben-data.h5" # file name for the line
+    fn = "/home/jovyan/ground2float/data/ATL06/ATL06_20181208072425_10790110_001_01.h5" # file name for the line
     dataset_dict={'land_ice_segments':['h_li', 'delta_time','longitude','latitude'], 'land_ice_segments/ground_track':['x_atc']}
     # read ATL06 into a dictionary (the ATL06 file has the same name as the ATL03 file, except for the product name)
     
@@ -123,22 +161,30 @@ if __name__ == "__main__":
     # pick out gt1r:
     D6 = D6_list[1]
     print(datetime.utcfromtimestamp(D6['delta_time'][0]))
-
-    f1,ax = plt.subplots(num=1,figsize=(10,6))
+    
+    # load in velocity and subsample
+    vels_xI,vels_yI,vels_array=tifread('./data/vx.tif')
+    vels = get_velocity(D6)
+    
+    # load in rema and subsample
+    rema_xI,rema_yI,rema_array=tifread('./data/REMA_1km_dem_filled.tif')
+    rema_elev = get_rema_elev(D6)
+    
+    # plot results
+    f1,ax = plt.subplots(num=1,figsize=(6,4))
     ax.plot(D6['x_atc'], D6['h_li'],'r.', markersize=2, label='ATL06')
+    ax.plot(D6['x_atc'], rema_elev ,'b.', markersize=2, label='REMA')
+    #ax.plot(D6['x_atc'], vels ,'g.', markersize=2, label='Velocity')
     lgd = ax.legend(loc=3,frameon=False)
-
+    ax.set_ylim([-100,2000])
     ax.set_xlabel('x_atc, m')
     ax.set_ylabel('h, m')
     plt.savefig('thw0.png')
     
-    # load in velocity and subsample
-    vels_array=load_tif('./data/vx.tif')
-    
-    vels = get_velocity(D6)
-    
-    # load in rema and subsample
-    rema_array=load_tif('./data/REMA_1km_dem_filled.tif')
-    rema_elev = get_rema_elev(D6)
-    
-    
+    f2,ax = plt.subplots(num=1,figsize=(6,4))
+    ax.plot(D6['x_atc'], D6['h_li']-rema_elev,'r.', markersize=2, label='Difference IS2-REMA')
+    lgd = ax.legend(loc=3,frameon=False)
+    ax.set_ylim([-100,2000])
+    ax.set_xlabel('x_atc, m')
+    ax.set_ylabel('h, m')
+    plt.savefig('thw1.png')

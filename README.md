@@ -55,7 +55,10 @@ aws s3 cp s3://pangeo-data-upload-oregon/icesat2/ground2float/ .
 
 To get IS2 data:
 
-% Get token from NSIDC: first need IP address
+ - Get token from NSIDC: first need IP address
 curl ifconfig.me 
 ./getATL/setup_token earthdataUserName earthdataPassword yourIPaddress
+./getATL/run_ATL06_query -b -107 -75.6 -104.4 -74.9 -v 001
+
+ - The bounding box is W S E N, where longitude ranges from -180 to 180.
 
