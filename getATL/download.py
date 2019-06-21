@@ -57,7 +57,7 @@ tokennumber='"<id>'+token+'</id>"'
 tokennumber
 
 
-rundownload = 'python '+pathtopythonfile'+ -s -token '+tokennumber+' -b '+boundingbox+' -v 001 -t '+time+' -o '+output
+rundownload = 'python '+pathtopythonfile+' -s -token '+tokennumber+' -b '+boundingbox+' -v 001 -t '+time+' -o '+output
 
 p=subprocess.Popen(rundownload, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
