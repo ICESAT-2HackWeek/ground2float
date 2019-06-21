@@ -46,6 +46,7 @@ parser=argparse.ArgumentParser(description=description)
 parser.add_argument('-b', dest='bbox', type=float, nargs=4, required=False, help="should be of the form W S E N");
 parser.add_argument('-s', dest='subset', default=False, action='store_true')
 parser.add_argument('-o', dest='output_directory', type=str)
+parser.add_argument('-token', dest='token', type=str)
 parser.add_argument('-t', dest='time_str', type=str,default=None, help="Time range for query.  Format is YYYY-MM-DDTHH:MM:SS,YYYY-MM-DDTHH:MM:SS")
 parser.add_argument('-v', dest='version', type=str, default=203, help="data version.  Ex: 203")
 parser.add_argument('-d', dest='dry_run', default=False, action='store_true')
@@ -70,8 +71,11 @@ if token is None:
 
 token_str='&token=%s' % token
  
-if 'output_directoryx' in args:
+if 'output_directory' in args:
     os.chdir(args.output_directory)
+
+if 'token' in args:
+    token = token_str
 
 if args.tifFile is not None:
     args.bbox=np.zeros(4)
