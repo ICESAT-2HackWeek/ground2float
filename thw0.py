@@ -15,6 +15,12 @@ from osgeo import gdal, gdalconst, osr
 import matplotlib.pyplot as plt
 import numpy as np
 
+import geopandas as gpd
+from shapely.geometry import Point, Polygon
+from descartes.patch import PolygonPatch
+from matplotlib import path, patches
+
+plt.ticklabel_format(useOffset=False)
 
 #data_dir='ATL06/Byrd_glacier_rel001/'
 
@@ -93,33 +99,17 @@ def ATL06_to_dict(filename, dataset_dict, gpstime=True):
                     D6.append(temp)
     return D6
 
-def get_velocity(D6):
+def get_velocity(x, y, vx, vy, D6):
     psx,psy = pyproj.transform(lon_lat,polar_stereo,D6['longitude'],D6['latitude'])
-    vel_is2 = interp2d(vels_xI, vels_yI, vels_array, psx, psy, order=1)
-    return vel_is2
+    vel_x = interp2d(x, y, vx, psx, psy, order=1)
+    vel_y = interp2d(x, y, vy, psx, psy, order=1)
+    vdir = np.rad2deg(np.arctan2(vel_x, vel_y))%360.
+    return vdir
 
-def get_rema_elev(D6):
+def get_rema_elev(x, y, rarr, D6):
     psx,psy = pyproj.transform(lon_lat,polar_stereo,D6['longitude'],D6['latitude'])
-    rema_is2 = interp2d(rema_xI, rema_yI, rema_array, psx, psy, order=1)
+    rema_is2 = interp2d(x, y, rarr, psx, psy, order=1)
     return rema_is2
-  
-# this thang don't work, don't use it    
-def load_tif(tif):
-    dataset = gdal.Open(tif, gdal.GA_ReadOnly)
-    band = dataset.GetRasterBand(1)
-    array = band.ReadAsArray()
-    proj=dataset.GetProjection()
-    GT=dataset.GetGeoTransform()
-    ii=np.array([0, band.XSize-1])+0.5
-    jj=np.array([0,band.YSize])+0.5
-    x=GT[0]+GT[1]*ii
-    y=GT[0]+GT[1]*jj
-    dx=GT[1]
-    dy=(GT[5]*-1)
-    xi=np.arange(x.min(),x.max()+dx,dx)
-    yi=np.arange(y.min(),y.max()+dy,dy)
-    xI, yI = np.meshgrid(xi, yi)
-    return xI,yI,np.flipud(array) 
 
 def tifread(ifile):
     file = gdal.Open(ifile, gdal.GA_ReadOnly)
@@ -150,7 +140,41 @@ def tifread(ifile):
     dx = np.abs(dx)
     dy = np.abs(dy)
     return X, Y, Z
+
     
+def findGL(D6):
+    """Return array of indices of intersection of Grounding Zone and ATL06
+       Return polygon of the GL
+      """
+    shapefile = gpd.read_file("./data/GL_VARIABILITY.shp")
+    ## read the grounding line - which is a multi-polygon
+    ## and find the largest polygon
+    gl_fn = './data/IMBIE/GroundingLine_Antarctica_v02.shp'
+    #imbie_gdf = gpd.read_file(imbie_fn)
+    gl_gdf = gpd.read_file(gl_fn)
+    geom0=gl_gdf['geometry'][0]
+    len(geom0)
+    areas = [i.area for i in geom0]
+    largest = np.argmax(areas)
+    polygon = geom0[largest]
+    
+#     for polygon in shapefile.geometry:
+#        patch = PolygonPatch(polygon)
+#        xp, yp = polygon.exterior.coords.xy
+#        coords = np.squeeze(np.dstack((xp,yp)))
+#        #plt.plot(*polygon.exterior.xy);
+#     polygon = shapefile.geometry[0] # Item number can be changed for
+    xp, yp = polygon.exterior.coords.xy
+    coords = np.squeeze(np.dstack((xp,yp)))
+    poly_mpl = path.Path(coords)
+    temp = {}
+    temp["x"],temp["y"] = pyproj.transform(lon_lat,polar_stereo,D6["longitude"],D6["latitude"])
+    mask = poly_mpl.contains_points(np.transpose([temp["x"],temp["y"]]))
+    #plt.plot(*polygon.exterior.xy)
+    #plt.plot(temp[‘x’],temp[‘y’])
+    cross=np.argwhere(mask)
+    return cross, polygon
+        
 if __name__ == "__main__":
 
     # get h5 files, velocity files, and rema
@@ -187,46 +211,77 @@ if __name__ == "__main__":
     fn = ATLfiles[0]
     D6_list=ATL06_to_dict(fn, dataset_dict)
 
-    # pick out gt1r:
-    D6 = D6_list[1]
+    # pick out gt2r:
+    D6 = D6_list[3]
     print(datetime.utcfromtimestamp(D6['delta_time'][0]))
-    T6 = T6_list[1]
+    T6 = T6_list[3]
 
     print(D6['x_atc'].shape)
     print(T6['tide'].shape)
-    
-    f1,ax = plt.subplots()
-    ax.plot(D6['x_atc'], D6['h_li'],'r.', markersize=2, label='ATL06')
-    ax.plot(D6['x_atc'], T6['tide'])
-    lgd = ax.legend(loc=3,frameon=False)
-    ax.set_ylim([-100,100])
-    ax.set_xlabel('x_atc, m')
-    ax.set_ylabel('h, m')
-    #plt.savefig('thwt.png')
+    crossing, poly = findGL(D6)
+    print(crossing)
     
     # load in velocity and subsample
-    vels_xI,vels_yI,vels_array=tifread('./data/vx.tif')
-    vels = get_velocity(D6)
-    
+    vels_xI,vels_yI,vels_array_x=tifread('./data/vx.tif')
+    vels_xI,vels_yI,vels_array_y=tifread('./data/vy.tif')
+
+    vels = get_velocity(vels_xI, vels_yI, vels_array_x, vels_array_y, D6)
+    #print(vels)
+    #plt.plot(D6['x_atc'], vels ,'g.', markersize=2, label='Velocity')
+
     # load in rema and subsample
     rema_xI,rema_yI,rema_array=tifread('./data/REMA_1km_dem_filled.tif')
-    rema_elev = get_rema_elev(D6)
+    rema_elev = get_rema_elev(rema_xI, rema_yI, rema_array, D6)
+    
+    plt.close('all')
+    f1,ax = plt.subplots(4,1, figsize=(10,6), sharex=True)
+    ax[0].plot(D6['x_atc'], D6['h_li'],'r.', markersize=2, label='ATL06')
+    ax[0].plot(D6['x_atc'], T6['tide'])
+    lgd = ax[0].legend(loc=3,frameon=False)
+    ax[0].set_ylim([-100,100])
+    ax[0].set_xlabel('x_atc, m')
+    ax[0].set_ylabel('h, m')
+    ax[0].title.set_text('ATL06 h_li & Padman Tide h')
+    ax[0].axvline(D6['x_atc'][crossing[0]])
+    ax[0].axvline(D6['x_atc'][crossing[-1]])
+    #plt.savefig('thwt.png')
+    
+
     
     # plot results
-    f2,ax2 = plt.subplots()
-    ax2.plot(D6['x_atc'], D6['h_li'],'r.', markersize=2, label='ATL06')
-    ax2.plot(D6['x_atc'], rema_elev ,'b.', markersize=2, label='REMA')
-    #ax.plot(D6['x_atc'], vels ,'g.', markersize=2, label='Velocity')
-    lgd = ax2.legend(loc=3,frameon=False)
-    ax2.set_ylim([-100,2000])
-    ax2.set_xlabel('x_atc, m')
-    ax2.set_ylabel('h, m')
+    #f2,ax2 = plt.subplots(312, sharex=True, sharey=True)
+    ax[1].plot(D6['x_atc'], D6['h_li'],'r.', markersize=2, label='ATL06')
+    ax[1].plot(D6['x_atc'], rema_elev ,'b.', markersize=2, label='REMA')
+    lgd = ax[1].legend(loc=3,frameon=False)
+    ax[1].set_ylim([-100,2000])
+    ax[1].set_xlabel('x_atc, m')
+    ax[1].set_ylabel('h, m')
+    ax[1].title.set_text('ATL06 h_li & REMA h')
+    
+    ax[1].axvline(D6['x_atc'][crossing[0]])
+    ax[1].axvline(D6['x_atc'][crossing[-1]])
     #plt.savefig('thw0.png')
     
-    f3,ax3 = plt.subplots()
-    ax3.plot(D6['x_atc'], D6['h_li']-rema_elev,'r.', markersize=2, label='Difference IS2-REMA')
-    lgd = ax3.legend(loc=3,frameon=False)
-    ax3.set_ylim([-100,100])
-    ax3.set_xlabel('x_atc, m')
-    ax3.set_ylabel('h, m')
-    #plt.savefig('thw1.png')
+    #f3,ax3 = plt.subplots(313, sharex=True, sharey=True)
+    ax[2].plot(D6['x_atc'], D6['h_li']-rema_elev,'r.', markersize=2, label='Difference IS2-REMA')
+    lgd = ax[2].legend(loc=3,frameon=False)
+    ax[2].set_ylim([-100,100])
+    ax[2].set_xlabel('x_atc, m')
+    ax[2].set_ylabel('h, m')
+    ax[2].title.set_text('Difference IS2-REMA')
+    
+    ax[2].axvline(D6['x_atc'][crossing[0]])
+    ax[2].axvline(D6['x_atc'][crossing[-1]])
+    
+    ax[3].plot(D6['x_atc'], vels ,'g.', markersize=2, label='Velocity')
+    ax[3].title.set_text('GOLIVE Velocity aximuth')
+    plt.tight_layout()
+    
+
+    ax[3].axvline(D6['x_atc'][crossing[0]])
+    ax[3].axvline(D6['x_atc'][crossing[-1]])
+
+    plt.savefig('thw1.png')
+    
+    #gl_gdf = glread()
+    #plot(gl_gdf[0])
